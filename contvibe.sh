@@ -43,20 +43,24 @@ str_arr+=("container volume mount config: "
 printf "%s\n" "${str_arr[@]}"
 
 # Sanity check: Docker group
-[[ $(groups) =~ "docker" ]] || { echo "Error: $(whoami) not in docker group."; exit 1; }
+if [[ ! $(groups) =~ "docker" ]]; then
+    echo "Error: $(whoami) not in docker group."
+    exit 1
+fi
 
 # persistent directories
+v_state=".contvibe"
 # for Vibe files
 mkdir -p "${contvibe_path}/.vibe_config"
 # persists/home/agent
-mkdir -p "${WORK_PATH}/.contvibe"
+mkdir -p "${WORK_PATH}/${v_state}"
 
 # .gitignore adderifier
 ign_f="${WORK_PATH}/.gitignore"
-v_state=".contvibe"
 if [ -f "$ign_f" ]; then
     if ! grep -qxF "/$v_state/" "$ign_f"; then
-        printf "\n# Contvibe isolated environment state\n/$v_state/\n" >> "$ign_f"
+        printf "\n# Contvibe isolated environment state\n/$v_state/\n" \
+            >> "$ign_f"
     fi
 fi
 
@@ -68,13 +72,19 @@ export UA_GID=$(id -g)
 export UA_GIT_NAME=$(git config user.name || echo "Cont Vibe")
 export UA_GIT_EMAIL=$(git config user.email || echo "vibe@contvibe.sh.local")
 
+# Detect docker compose command
+COMPOSE_CMD="docker compose"
+if ! docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+fi
+
 # Build and run
-cd "${contvibe_path}" # working dir for docker-compose
+cd "${contvibe_path}" # working dir for compose
 source version_audit.sh
-docker-compose build mistral-agent
+$COMPOSE_CMD build mistral-agent
 
 # Security: Limit environment variables passed to container
 # Only pass essential variables, filter out potential secrets
 # Note: HOME and TERM are already set in compose.yaml environment section
-docker-compose run --rm -e USER -e PATH \
+$COMPOSE_CMD run --rm -e USER -e PATH \
   mistral-agent "${args[@]}"
