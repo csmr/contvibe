@@ -11,7 +11,7 @@ export bind_path="/app"
 # vibe.sh script location
 contvibe_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# agent comtainer home dir
+# agent container home dir
 vibe_home="/home/python"
 export VIBE_HOME="${vibe_home}"
 v_ver=$(cat "${contvibe_path}/VERSION" 2>/dev/null || echo "v0.2.0-dev")
@@ -42,8 +42,27 @@ str_arr+=("container volume mount config: "
           "vibe args: ${args}")
 printf "%s\n" "${str_arr[@]}"
 
-# Sanity check: Docker group
-[[ $(groups) =~ "docker" ]] || { echo "Error: $(whoami) not in docker group."; exit 1; }
+# Determine container compose runner
+CONT_RUNNER=()
+for c in "podman compose" podman-compose "docker compose" docker-compose; do
+    if $c version >/dev/null 2>&1; then
+        CONT_RUNNER=($c)
+        break
+    fi
+done
+
+if [[ ${#CONT_RUNNER[@]} -eq 0 ]]; then
+    echo "Error: Container compose runner not found."
+    exit 1
+fi
+
+# Sanity check: Docker group if runner uses docker
+if [[ "${CONT_RUNNER[*]}" =~ docker ]]; then
+    [[ $(groups) =~ "docker" ]] || {
+        echo "Error: $(whoami) not in docker group."
+        exit 1
+    }
+fi
 
 # persistent directories
 # for Vibe files
@@ -56,7 +75,7 @@ ign_f="${WORK_PATH}/.gitignore"
 v_state=".contvibe"
 if [ -f "$ign_f" ]; then
     if ! grep -qxF "/$v_state/" "$ign_f"; then
-        printf "\n# Contvibe isolated environment state\n/$v_state/\n" >> "$ign_f"
+        printf "\n# Contvibe state\n/$v_state/\n" >> "$ign_f"
     fi
 fi
 
@@ -69,12 +88,12 @@ export UA_GIT_NAME=$(git config user.name || echo "Cont Vibe")
 export UA_GIT_EMAIL=$(git config user.email || echo "vibe@contvibe.sh.local")
 
 # Build and run
-cd "${contvibe_path}" # working dir for docker-compose
+cd "${contvibe_path}" # working dir for compose
 source version_audit.sh
-docker-compose build mistral-agent
+"${CONT_RUNNER[@]}" build mistral-agent
 
 # Security: Limit environment variables passed to container
 # Only pass essential variables, filter out potential secrets
 # Note: HOME and TERM are already set in compose.yaml environment section
-docker-compose run --rm -e USER -e PATH \
+"${CONT_RUNNER[@]}" run --rm -e USER -e PATH \
   mistral-agent "${args[@]}"
