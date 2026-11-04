@@ -17,8 +17,7 @@ services:
       - ./AGENTS.md:${VIBE_HOME}/AGENTS.md:ro
       # Docker Socket for RO/control & test runs
       #- /var/run/docker.sock:/var/run/docker.sock:ro
-      # Host timezone propagation
-      - /etc/timezone:/etc/timezone:ro
+      # Host timezone propagation (/etc/localtime is standard on Linux)
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TERM=xterm-256color
