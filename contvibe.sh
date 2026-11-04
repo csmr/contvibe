@@ -15,7 +15,7 @@ contvibe_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 vibe_home="/home/python"
 export VIBE_HOME="${vibe_home}"
 v_ver=$(tr -d '[:space:]' < "${contvibe_path}/VERSION" 2>/dev/null \
-  || echo "v0.2.0-dev")
+  || echo "v0.2.4-dev")
 
 check_version_update() {
     local stamp_f="${contvibe_path}/.vibe_config/.version_check"
