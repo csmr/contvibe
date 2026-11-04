@@ -90,10 +90,22 @@ export UA_GIT_EMAIL=$(git config user.email || echo "vibe@contvibe.sh.local")
 # Build and run
 cd "${contvibe_path}" # working dir for compose
 source version_audit.sh
-"${CONT_RUNNER[@]}" build mistral-agent
+
+# Check for updates once per day automatically
+stamp_f="${contvibe_path}/.vibe_config/.last_pull"
+if [ ! -f "$stamp_f" ] || [ -n "$(find "$stamp_f" -mtime +1 2>/dev/null)" ]
+then
+    echo "Checking for base image updates..."
+    "${CONT_RUNNER[@]}" build --pull --quiet mistral-agent 2>/dev/null || true
+    touch "$stamp_f"
+else
+    "${CONT_RUNNER[@]}" build mistral-agent
+fi
 
 # Security: Limit environment variables passed to container
 # Only pass essential variables, filter out potential secrets
 # Note: HOME and TERM are already set in compose.yaml environment section
-"${CONT_RUNNER[@]}" run --rm -e USER -e PATH \
+"${CONT_RUNNER[@]}" run --rm \
+  -e USER="${USER}" \
+  -e PATH="${PATH}" \
   mistral-agent "${args[@]}"

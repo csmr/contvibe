@@ -1,25 +1,29 @@
 # 1. BUILD STAGE
 FROM python:3.12-slim-bookworm AS builder
 
-# Install everything needed to download/build
+# Install everything needed, ensuring ca-certificates is up-to-date
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       curl \
       unzip \
+      ca-certificates \
+    && apt-get --only-upgrade install -y ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Deno
 RUN curl -fsSL https://deno.land/install.sh | sh
 
-# Install mistral-vibe (get latest version)
-RUN pip install --no-cache-dir mistral-vibe
+# Ensure certifi is patched against the eMudhra compromise
+RUN pip install --no-cache-dir --upgrade \
+      "certifi>=2026.10.19" \
+      mistral-vibe
 
 # 2. RUNTIME STAGE
 FROM python:3.12-slim-bookworm
 
 ARG VIBE_HOME
 
-# Install runtime deps, dev tools
+# Install runtime deps and ensure system CA bundle is updated
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       elixir \
@@ -27,6 +31,8 @@ RUN apt-get update && \
       curl \
       build-essential \
       vim-tiny \
+      ca-certificates \
+    && apt-get --only-upgrade install -y ca-certificates \
     && rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
