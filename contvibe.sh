@@ -14,7 +14,29 @@ contvibe_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # agent container home dir
 vibe_home="/home/python"
 export VIBE_HOME="${vibe_home}"
-v_ver=$(cat "${contvibe_path}/VERSION" 2>/dev/null || echo "v0.2.0-dev")
+v_ver=$(tr -d '[:space:]' < "${contvibe_path}/VERSION" 2>/dev/null \
+  || echo "v0.2.0-dev")
+
+check_version_update() {
+    local stamp_f="${contvibe_path}/.vibe_config/.version_check"
+    if [ ! -f "$stamp_f" ] || \
+       [ -n "$(find "$stamp_f" -mtime +1 2>/dev/null)" ]; then
+        (
+            local remote_url=\
+"https://raw.githubusercontent.com/csmr/contvibe/main/VERSION"
+            local remote_ver
+            remote_ver=$(curl -sSL "$remote_url" 2>/dev/null \
+              | tr -d '[:space:]')
+            if [[ -n "$remote_ver" && "$remote_ver" != "$v_ver" ]]; then
+                printf "\n\033[33m💡 New version available: %s" "$remote_ver"
+                printf " (Current: %s)\033[0m\n" "$v_ver"
+                printf "\033[33mRun './contvibe.sh --self-update' "
+                printf "to pull the latest changes.\033[0m\n\n"
+            fi
+        ) &
+        touch "$stamp_f"
+    fi
+}
 
 str_arr=("contvibe.sh ${v_ver} 😽 sandbox container runner")
 args=()
@@ -69,6 +91,9 @@ fi
 mkdir -p "${contvibe_path}/.vibe_config"
 # persists/home/agent
 mkdir -p "${WORK_PATH}/.contvibe"
+
+# check version update in background
+check_version_update
 
 # .gitignore adderifier
 ign_f="${WORK_PATH}/.gitignore"
