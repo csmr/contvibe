@@ -29,6 +29,8 @@ Be wary, supervise agent.
   - adds `.contvibe/` in sandbox working directory, project-local subdir for 
     in-container tool/cache-files (Deno, Mix, etc.), shell history.
 - DooD: Docker-out-of-Docker for test containers.
+- Support: docker or podman
+- Fresh: daily check for updates
 
 
 ### Quickstart 🚀
