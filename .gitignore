@@ -1,5 +1,6 @@
 # Vibe Local State & Keys
 .vibe_config/
+.state/
 .env
 
 # Docker / System

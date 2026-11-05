@@ -18,7 +18,7 @@ v_ver=$(tr -d '[:space:]' < "${contvibe_path}/VERSION" 2>/dev/null \
   || echo "v0.2.4-dev")
 
 check_version_update() {
-    local stamp_f="${contvibe_path}/.vibe_config/.version_check"
+    local stamp_f="${contvibe_path}/.state/.version_check"
     if [ ! -f "$stamp_f" ] || \
        [ -n "$(find "$stamp_f" -mtime +1 2>/dev/null)" ]; then
         (
@@ -55,8 +55,9 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
-# Expand tilde (~) if present in WORK_PATH
+# Expand tilde (~) and resolve canonical path for WORK_PATH
 export WORK_PATH="${WORK_PATH/#\~/$HOME}"
+export WORK_PATH="$(realpath "${WORK_PATH}")"
 
 str_arr+=("container volume mount config: "
           "host work path: ${WORK_PATH}"
@@ -89,6 +90,15 @@ fi
 # persistent directories
 # for Vibe files
 mkdir -p "${contvibe_path}/.vibe_config"
+mkdir -p "${contvibe_path}/.vibe_config/prompts"
+if [ ! -f "${contvibe_path}/.vibe_config/config.toml" ]; then
+    printf '[system]\nprompt_id = "default"\n' \
+      > "${contvibe_path}/.vibe_config/config.toml"
+fi
+
+# script internal state directory
+mkdir -p "${contvibe_path}/.state"
+
 # persists/home/agent
 mkdir -p "${WORK_PATH}/.contvibe"
 
@@ -117,7 +127,7 @@ cd "${contvibe_path}" # working dir for compose
 source version_audit.sh
 
 # Check for updates once per day automatically
-stamp_f="${contvibe_path}/.vibe_config/.last_pull"
+stamp_f="${contvibe_path}/.state/.last_pull"
 if [ ! -f "$stamp_f" ] || [ -n "$(find "$stamp_f" -mtime +1 2>/dev/null)" ]
 then
     echo "Checking for base image updates..."
