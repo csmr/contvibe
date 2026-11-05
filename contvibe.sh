@@ -57,7 +57,12 @@ done
 
 # Expand tilde (~) and resolve canonical path for WORK_PATH
 export WORK_PATH="${WORK_PATH/#\~/$HOME}"
-export WORK_PATH="$(realpath "${WORK_PATH}")"
+export WORK_PATH="$(realpath -m "${WORK_PATH}")"
+
+if [ ! -d "${WORK_PATH}" ]; then
+    echo "Error: WORK_PATH directory does not exist: ${WORK_PATH}" >&2
+    exit 1
+fi
 
 str_arr+=("container volume mount config: "
           "host work path: ${WORK_PATH}"
