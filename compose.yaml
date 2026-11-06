@@ -1,3 +1,7 @@
+# Contract:
+# 1. /app -> Host project repository ($WORK_PATH)
+# 2. $VIBE_HOME -> Local sandbox persistence ($WORK_PATH/.contvibe)
+# 3. $VIBE_HOME/.vibe -> Global agent state & config (./agent-state)
 services:
   mistral-agent:
     build:
@@ -12,11 +16,9 @@ services:
       # Unified persistent home in the project sandbox
       - "${WORK_PATH}/.contvibe:${VIBE_HOME}"
       # Shared global config (API keys, etc.) overlaid on the home
-      - "./.vibe_config:${VIBE_HOME}/.vibe"
+      - "./agent-state:${VIBE_HOME}/.vibe"
       # Agent instructions and guidelines (read-only overlay)
       - ./AGENTS.md:${VIBE_HOME}/AGENTS.md:ro
-      # Docker Socket for RO/control & test runs
-      #- /var/run/docker.sock:/var/run/docker.sock:ro
       # Host timezone propagation (/etc/localtime is standard on Linux)
       - /etc/localtime:/etc/localtime:ro
     environment:
@@ -27,11 +29,13 @@ services:
       - GIT_AUTHOR_EMAIL=${UA_GIT_EMAIL}
       - GIT_COMMITTER_NAME=${UA_GIT_NAME}
       - GIT_COMMITTER_EMAIL=${UA_GIT_EMAIL}
-      # Robust Git identity projection via modern environment variables
-      - GIT_CONFIG_COUNT=2
+      # Modern git identity projection and trust configuration
+      - GIT_CONFIG_COUNT=3
       - GIT_CONFIG_KEY_0=user.name
       - GIT_CONFIG_VALUE_0=${UA_GIT_NAME}
       - GIT_CONFIG_KEY_1=user.email
       - GIT_CONFIG_VALUE_1=${UA_GIT_EMAIL}
+      - GIT_CONFIG_KEY_2=safe.directory
+      - GIT_CONFIG_VALUE_2=/app
     stdin_open: true
     tty: true
